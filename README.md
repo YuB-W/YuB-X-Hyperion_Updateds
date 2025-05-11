@@ -1,3 +1,4 @@
+
 # 🛡️ YuB-X Hyperion_Updateds
 
 A powerful utility and dashboard for tracking Roblox WindowsPlayer version deployments — especially built for exploit developers and reverse engineers.  
@@ -55,15 +56,13 @@ This repo automates it all. It gives you the **first-mover advantage**.
 
 Example from the tool after detecting a new version:
 
+```
 ✅ New Roblox WindowsPlayer version found!
-→ Version Hash: version-ff05edc617954c5b
-→ File Version: 0.672.0.6720706
-→ Deployment Time: 2025-05-06 08:34:35 AM
+→ Version Hash: version-ff05edc617954c5b  
+→ File Version: 0.672.0.6720706  
+→ Deployment Time: 2025-05-06 08:34:35 AM  
 → You are using the latest version.
-
-yaml
-Copy
-Edit
+```
 
 ---
 
@@ -114,5 +113,3 @@ Website: [https://yub-x.com](https://yub-x.com)
 
 This tool is for educational and research purposes only.  
 Use responsibly. No affiliation with Roblox Corporation.
-
----
