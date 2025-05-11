@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyperion_Updateds</title>
+  <link rel="icon" href="https://www.roblox.com/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; font-family: 'Poppins', sans-serif; background: radial-gradient(ellipse at center, #0a0015 0%, #050008 100%); color: #eaeaea; }
+    .navbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background: rgba(18, 0, 30, 0.8); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); }
+    .navbar h1 { font-size: 1.8rem; font-weight: 600; color: #ff0057; display: flex; align-items: center; }
+    .navbar img { height: 45px; margin-right: 12px; }
+    .navbar a { background: #ff0057; color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; }
+    .navbar a:hover { background: #ff3380; }
+    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    .card { background: #1c1c1f; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); border-left: 6px solid #ff0057; }
+    .alert { color: #27ff7e; font-weight: 600; margin: 10px 0; }
+    .timestamp { font-size: 0.9rem; color: #aaa; }
+    #loadingBar { width: 100%; height: 4px; background: #222; margin-top: 40px; overflow: hidden; border-radius: 4px; }
+    #bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff0057, #8a2be2); transition: width 0.3s ease; }
+    .loader { display: inline-block; width: 10px; height: 10px; margin-right: 10px; border-radius: 50%; background: #ff0057; animation: pulse 1s infinite alternate; }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.5); opacity: 1; } }
+    #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .loader-circle { width: 50px; height: 50px; border: 5px solid #ff0057; border-top: 5px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #refreshBtn { margin-top: 15px; padding: 8px 16px; background: #222; border: 1px solid #ff0057; border-radius: 6px; color: white; cursor: pointer; }
+    #refreshBtn:hover { background: #331033; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1><img src="https://iili.io/3xRENP1.png" alt="Logo">Hyperion_Updateds</h1>
+    <a href="https://yub-x.com" target="_blank">Visit Main Site</a>
+  </div>
+  <div class="container">
+    <div class="card" id="currentVersion"><span class="loader"></span> Loading current version...</div>
+    <div class="card" id="latestVersion"><span class="loader"></span> Loading latest deployed version...</div>
+    <div class="alert" id="status"></div>
+    <div id="downloadSection"></div>
+    <button id="refreshBtn" onclick="manualRefresh()">🔁 Refresh Now</button>
+    <div class="timestamp" id="timestamp"></div>
+    <div id="loadingBar"><div id="bar"></div></div>
+    <div id="globalLoader"><div class="loader-circle"></div></div>
+    <div id="logBox" style="margin-top: 20px; font-size: 0.9rem; color: #ccc; max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+      <div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Logs</div>
+      <div id="logEntries"></div>
+    </div>
+  </div>
+
+<script>
+  const logEntries = document.getElementById("logEntries");
+
+  function log(msg) {
+    const timestamp = new Date().toLocaleTimeString();
+    const p = document.createElement('p');
+    p.textContent = `› [${timestamp}] ${msg}`;
+    logEntries.appendChild(p);
+    logEntries.scrollTop = logEntries.scrollHeight;
+  }
+
+  function clearLogs() { logEntries.innerHTML = ''; }
+
+  async function fetchCurrentVersion() {
+    log("Fetching current version through proxy...");
+    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://clientsettings.roblox.com/v2/client-version/WindowsPlayer"));
+    const data = await res.json();
+    log("✅ Current version fetched.");
+    return data.clientVersionUpload;
+  }
+
+  async function fetchDeployHistory() {
+    const cache = localStorage.getItem("deployHistory");
+    const time = localStorage.getItem("deployHistoryTime");
+    if (cache && time && (Date.now() - Number(time)) < 5 * 60 * 1000) {
+      log("Using cached deploy history.");
+      return cache;
+    }
+    log("Fetching deploy history through proxy...");
+    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://setup.rbxcdn.com/DeployHistory.txt"));
+    const text = await res.text();
+    const lines = text.trim().split("\n");
+    const recentLines = lines.slice(-6000);
+    const slimmedText = recentLines.join("\n");
+    localStorage.setItem("deployHistory", slimmedText);
+    localStorage.setItem("deployHistoryTime", Date.now());
+    log(`✅ Deploy history fetched and trimmed to ${recentLines.length} lines.`);
+    return slimmedText;
+  }
+
+  async function fetchLatestDeployedVersion() {
+    const text = await fetchDeployHistory();
+    const lines = text.trim().split("\n").reverse();
+    for (let line of lines) {
+      if (line.startsWith("New WindowsPlayer version-")) {
+        const match = line.match(/version-[a-f0-9]+/);
+        if (match) return { hash: match[0], info: line };
+      }
+    }
+    throw new Error("Latest version not found.");
+  }
+
+  async function updateVersionInfo() {
+    showGlobalLoader(true);
+    clearLogs();
+    try {
+      log("Fetching both versions in parallel...");
+      const [current, latest] = await Promise.all([fetchCurrentVersion(), fetchLatestDeployedVersion()]);
+      document.getElementById("currentVersion").innerText = `Current Live Version: ${current}`;
+      document.getElementById("latestVersion").innerText = `Latest Deployed Version: ${latest.hash}\n${latest.info}`;
+
+      const latestHash = latest.hash.replace("version-", "").trim();
+      const currentHash = current.replace("version-", "").trim();
+      const cleanLine = latest.info.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+      const status = document.getElementById("status");
+      const downloadSection = document.getElementById("downloadSection");
+
+      if (latestHash !== currentHash && !cleanLine.includes(currentHash)) {
+        status.innerHTML = `⚠️ <span style="color:#ff3860">New version available!</span> (${latest.hash})`;
+        document.title = "⚠️ New Roblox Version Available!";
+        log("⚠️ New version detected.");
+        const base = `https://setup.rbxcdn.com/${latestHash}`;
+		
+			 downloadSection.innerHTML = `
+		  <div style="margin-top: 15px;">
+			<strong>⬇ Cannot link DLL/EXE directly — use official installer:</strong><br><br>
+			<a href="https://www.roblox.com/download/client" target="_blank" style="display:inline-block;margin:5px 0;padding:10px 16px;background:#0ff;color:#000;font-weight:600;border-radius:6px;text-decoration:none;">
+			  Open Official Roblox Installer
+			</a>
+		  </div>
+		`;
+
+      } else {
+        status.innerHTML = `✅ <span style="color:#27ff7e">You are using the latest version.</span>`;
+        document.title = "Roblox Version Tracker";
+        downloadSection.innerHTML = "";
+        log("✅ No update available.");
+      }
+
+      document.getElementById("timestamp").innerText = `Last checked: ${new Date().toLocaleTimeString()}`;
+    } catch (err) {
+      document.getElementById("status").innerText = `❌ Error: ${err.message}`;
+      log(`❌ ${err.message}`);
+    } finally {
+      showGlobalLoader(false);
+    }
+  }
+
+  function showLoadingBar() {
+    const bar = document.getElementById("bar");
+    bar.style.width = "0%";
+    let progress = 0;
+    const interval = setInterval(() => {
+      if (progress >= 100) {
+        clearInterval(interval);
+      } else {
+        progress += 10;
+        bar.style.width = progress + "%";
+      }
+    }, 20);
+  }
+
+  function showGlobalLoader(show) {
+    document.getElementById("globalLoader").style.display = show ? "flex" : "none";
+  }
+
+  function manualRefresh() {
+    showLoadingBar();
+    updateVersionInfo();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    showLoadingBar();
+    updateVersionInfo();
+    setInterval(() => {
+      showLoadingBar();
+      updateVersionInfo();
+    }, 30000);
+  });
+</script>
+</body>
+</html>
